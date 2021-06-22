@@ -22,3 +22,28 @@ cv2.imwrite(os.path.join(path, 'pic1.jpg'), t1)
 cv2.imwrite(os.path.join(path, 'pic2.jpg'), t2)
 cv2.waitKey()
 
+
+class ImageHandler():
+    """ Содержит базовый набор функций для обработки изображения
+    и поиска дефектных семян на нем"""
+
+    def apply_bilateral_filter(self, image):
+        bilateral = cv2.bilateralFilter(image, 9, 75, 75)
+        return bilateral
+
+    def mark_seeds_by_counters(self, image_gray, origin, min_val: int, max_val: int):
+        """ Ищет контуры объектов, "замыкает" их. """
+
+        countered_image = cv2.Canny(image_gray, min_val, max_val)
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+        closed_countered_image = cv2.morphologyEx(countered_image, cv2.MORPH_CLOSE, kernel)
+        counturs, hierarchy = cv2.findContours(closed_countered_image.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        for countur in counturs:
+            try:
+                perimetr = cv2.arcLength(countur, True)
+                approx = cv2.approxPolyDP(countur, 0.02 * perimetr, True)
+                original = cv2.drawContours(origin, [approx], -1, (0, 255, 0), 1)
+            except Exception as err:
+                print(err)
+        return origin
+
